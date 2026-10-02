@@ -1,0 +1,7 @@
+#pragma once
+
+#define TAPPING_TERM 200
+#define CHORDAL_HOLD
+#define SPLIT_ACTIVITY_ENABLE
+#define SPLIT_LAYER_STATE_ENABLE
+#define SPLIT_MODS_ENABLE

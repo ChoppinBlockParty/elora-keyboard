@@ -1,0 +1,6 @@
+.build/
+*.uf2
+!firmware/elora_left_tft.uf2
+!firmware/elora_right_encoder_rev2.uf2
+*.elf
+__pycache__/

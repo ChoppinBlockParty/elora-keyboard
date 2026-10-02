@@ -1,0 +1,7 @@
+{
+  "userspace_version": "1.1",
+  "build_targets": [
+    ["splitkb/halcyon/elora/rev2", "elora", {"HLC_TFT_DISPLAY": "1", "TARGET": "elora_left_tft"}],
+    ["splitkb/halcyon/elora/rev2", "elora", {"HLC_ENCODER_REV2": "1", "TARGET": "elora_right_encoder_rev2"}]
+  ]
+}
