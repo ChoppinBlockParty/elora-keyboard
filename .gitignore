@@ -1,9 +1,15 @@
 .build/
 *.uf2
-!firmware/elora_left_tft.uf2
-!firmware/elora_right_encoder_rev2.uf2
 *.elf
+
+# Build outputs; rebuild them with scripts/build.sh
+firmware/
 __pycache__/
+.DS_Store
+
+# The original spec archive; its spec is docs/agreed-spec.md and its sprite
+# sheet is byte-identical to the one in assets/
+elora_project_spec_with_tft_sprite.zip
 
 # Local clangd database generated from the QMK build
 compile_commands.json

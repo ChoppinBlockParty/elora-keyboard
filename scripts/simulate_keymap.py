@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
-"""Check key positions and representative QMK tap/hold chords without hardware.
+"""Check the keymap's structure, and sanity-check the tap/hold rules it enables.
 
-This uses the LAYOUT arguments in keymap.c. Timing rules model the documented
-Chordal Hold, per-key Permissive Hold, and Hold On Other Key Press behavior;
-it is not QMK itself.
+The structural checks are the substance: the LAYOUT argument count, the layer
+set, which hand each layer's keys sit on, and transparent-key fallthrough.
+
+The chord outcomes below are a model, not a measurement. The model is built by
+reading which options tap_hold_config.h and tap_hold.c enable, so it reports what those
+files ask QMK for rather than what QMK does. Real behavioral coverage lives in
+tests/qmk_tap_hold, which drives actual QMK; run ./scripts/run_qmk_tap_tests.sh
+for that.
 """
 
 import re
@@ -11,7 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 KEYMAP = ROOT / "src/keymap.c"
-CONFIG = KEYMAP.with_name("config.h")
+CONFIG = KEYMAP.with_name("tap_hold_config.h")
 TAP_HOLD = KEYMAP.with_name("tap_hold.c")
 source = KEYMAP.read_text()
 tap_hold = TAP_HOLD.read_text()
@@ -51,7 +56,7 @@ quick_layer_hold = (
     and "bool get_hold_on_other_key_press(" in tap_hold
     and all(
         f"case {name}:" in tap_hold
-        for name in ("ESC_MED", "SPC_NAV", "TAB_MOU", "ENT_SYM", "BSP_NUM", "DEL_FUN")
+        for name in ("ESC_MEDIA", "SPC_NAV", "TAB_MOUSE", "ENT_SYM", "BSPC_NUM", "DEL_FUN")
     )
 )
 permissive_mod_taps = (
@@ -59,7 +64,7 @@ permissive_mod_taps = (
     and "bool get_permissive_hold(" in tap_hold
     and "return is_modifier_tap(keycode);" in tap_hold
 )
-home_mod_cases = ("GUI_A", "ALT_S", "CTL_D", "SFT_F", "SFT_J", "CTL_K", "ALT_L", "GUI_SCL", "CTL_ESC", "CTL_QUO")
+home_mod_cases = ("A_GUI", "S_ALT", "D_CTRL", "F_SHIFT", "J_SHIFT", "K_CTRL", "L_ALT", "SCLN_GUI", "ESC_CTRL", "QUOT_CTRL")
 assert all(f"case {name}:" in tap_hold for name in home_mod_cases)
 all_modifier_chords = (
     "bool get_chordal_hold(" in tap_hold
@@ -82,7 +87,7 @@ thumbs = {"MEDIA": 53, "NAV": 54, "MOUSE": 55, "SYM": 58, "NUM": 59, "FUN": 60}
 # Nav's left home-row modifiers are an intentional same-hand exception.
 for layer, thumb in thumbs.items():
     for position, keycode in enumerate(layers[layer]):
-        if keycode in ("___", "XXX"):
+        if keycode in ("TRNS", "XXX"):
             continue
         if layer == "NAV" and position in (25, 26, 27, 28):
             continue
@@ -91,7 +96,7 @@ for layer, thumb in thumbs.items():
 
 def layer_key(layer, position):
     value = layers[layer][position]
-    return layers["BASE"][position] if value == "___" else value
+    return layers["BASE"][position] if value == "TRNS" else value
 
 
 def chord(layer, position, delay_ms=30):
@@ -109,9 +114,9 @@ def tap_then_hold(layer, delay_ms=50):
 
 
 MODS = {
-    "GUI_A": "GUI", "ALT_S": "ALT", "CTL_D": "CTRL", "SFT_F": "SHIFT",
-    "SFT_J": "SHIFT", "CTL_K": "CTRL", "ALT_L": "ALT", "GUI_SCL": "GUI",
-    "CTL_ESC": "CTRL", "CTL_QUO": "CTRL",
+    "A_GUI": "GUI", "S_ALT": "ALT", "D_CTRL": "CTRL", "F_SHIFT": "SHIFT",
+    "J_SHIFT": "SHIFT", "K_CTRL": "CTRL", "L_ALT": "ALT", "SCLN_GUI": "GUI",
+    "ESC_CTRL": "CTRL", "QUOT_CTRL": "CTRL",
 }
 
 
@@ -132,18 +137,18 @@ cases = [
     ("Sym opposite-hand quick chord", chord("SYM", 14), ("KC_AT",)),
     ("Num opposite-hand quick chord", chord("NUM", 14), ("KC_7",)),
     ("Fun opposite-hand quick chord", chord("FUN", 13), ("KC_F1",)),
-    ("Num same-hand roll stays a tap", chord("NUM", 31), ("BSP_NUM", "SFT_J")),
+    ("Num same-hand roll stays a tap", chord("NUM", 31), ("BSPC_NUM", "J_SHIFT")),
     ("Num deliberate hold after timeout", chord("NUM", 14, 210), ("KC_7",)),
     ("Nav transparent key falls through", chord("NAV", 13, 210), ("KC_Q",)),
     ("Tap then immediately hold Nav", tap_then_hold("NAV"), "LAYER"),
     ("Fast nested F+5 is Shift+5", mod_chord(28, 5), ("SHIFT", "KC_5")),
-    ("Fast rolling F+5 stays a tap", mod_chord(28, 5, nested=False), ("SFT_F", "KC_5")),
+    ("Fast rolling F+5 stays a tap", mod_chord(28, 5, nested=False), ("F_SHIFT", "KC_5")),
     ("Fast nested F+V is Shift+V", mod_chord(28, 40), ("SHIFT", "KC_V")),
-    ("Fast rolling F+V stays letters", mod_chord(28, 40, nested=False), ("SFT_F", "KC_V")),
+    ("Fast rolling F+V stays letters", mod_chord(28, 40, nested=False), ("F_SHIFT", "KC_V")),
     ("Held F+V shifts after timeout", mod_chord(28, 40, delay_ms=210), ("SHIFT", "KC_V")),
     ("Fast nested J+6 is Shift+6", mod_chord(31, 6), ("SHIFT", "KC_6")),
-    ("Fast nested J+semicolon shifts", mod_chord(31, 34), ("SHIFT", "GUI_SCL")),
-    ("Rolling J+semicolon stays taps", mod_chord(31, 34, nested=False), ("SFT_J", "GUI_SCL")),
+    ("Fast nested J+semicolon shifts", mod_chord(31, 34), ("SHIFT", "SCLN_GUI")),
+    ("Rolling J+semicolon stays taps", mod_chord(31, 34, nested=False), ("J_SHIFT", "SCLN_GUI")),
     ("Fast nested A+1 is GUI+1", mod_chord(25, 1), ("GUI", "KC_1")),
     ("Fast nested S+2 is Alt+2", mod_chord(26, 2), ("ALT", "KC_2")),
     ("Fast nested D+3 is Ctrl+3", mod_chord(27, 3), ("CTRL", "KC_3")),
@@ -154,7 +159,7 @@ cases = [
     ("Fast nested Ctrl/quote+0 is Ctrl+0", mod_chord(35, 10), ("CTRL", "KC_0")),
     ("Fast nested F+Up is Shift+Up", mod_chord(28, 43), ("SHIFT", "KC_UP")),
     ("Cross-hand nested F+6 is Shift+6", mod_chord(28, 6), ("SHIFT", "KC_6")),
-    ("Cross-hand rolling F+6 stays a tap", mod_chord(28, 6, nested=False), ("SFT_F", "KC_6")),
+    ("Cross-hand rolling F+6 stays a tap", mod_chord(28, 6, nested=False), ("F_SHIFT", "KC_6")),
 ]
 
 failures = 0

@@ -1,21 +1,22 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "tap_hold.h"
+#include <string.h>
 #ifdef ELORA_KEYLOG
 #    include "keylog.h"
 #endif
 
 static bool is_modifier_tap(uint16_t keycode) {
     switch (keycode) {
-        case GUI_A:
-        case ALT_S:
-        case CTL_D:
-        case SFT_F:
-        case SFT_J:
-        case CTL_K:
-        case ALT_L:
-        case GUI_SCL:
-        case CTL_ESC:
-        case CTL_QUO:
+        case A_GUI:
+        case S_ALT:
+        case D_CTRL:
+        case F_SHIFT:
+        case J_SHIFT:
+        case K_CTRL:
+        case L_ALT:
+        case SCLN_GUI:
+        case ESC_CTRL:
+        case QUOT_CTRL:
             return true;
         default:
             return false;
@@ -28,11 +29,11 @@ static bool is_modifier_tap(uint16_t keycode) {
 bool get_hold_on_other_key_press(uint16_t keycode, keyrecord_t *record) {
     (void)record;
     switch (keycode) {
-        case ESC_MED:
+        case ESC_MEDIA:
         case SPC_NAV:
-        case TAB_MOU:
+        case TAB_MOUSE:
         case ENT_SYM:
-        case BSP_NUM:
+        case BSPC_NUM:
         case DEL_FUN:
             return true;
         default:
@@ -57,37 +58,72 @@ bool get_chordal_hold(uint16_t tap_hold_keycode, keyrecord_t *tap_hold_record,
     return get_chordal_hold_default(tap_hold_record, other_record);
 }
 
-// QMK stores held modifiers as bits. Releasing one source clears that bit
-// even if another source on the same side is still down. Keep it set until
-// all overlapping Shift or Ctrl sources have been released.
-static bool left_home_shift_held;
-static bool right_home_shift_held;
-static bool left_home_ctrl_held;
-static bool left_outer_ctrl_held;
-static bool right_home_ctrl_held;
-static bool right_outer_ctrl_held;
-static uint8_t left_basic_shift_count;
-static uint8_t right_basic_shift_count;
-static uint8_t left_basic_ctrl_count;
-static uint8_t right_basic_ctrl_count;
+// QMK stores one bit per modifier, so when two keys supply the same bit,
+// letting it process the first release clears the bit while the other key is
+// still down. Each group owns a bit and withholds the release until every
+// source for it is up.
+//
+// Only Shift and Ctrl need a group. No two keys here supply the same Alt or
+// GUI bit: Nav's Alt and GUI sit on the same physical keys as their Base
+// mod-taps, and L_ALT and SCLN_GUI are the right-hand variants. Giving any
+// modifier a second key means giving it a group.
+#define SHARED_MODIFIER_HOLD_SOURCES 2
+#define SHARED_MODIFIER_NO_SOURCE    UINT8_MAX
 
-static bool process_shared_modifier(bool *this_held, bool other_held, keyrecord_t *record, bool is_mod_tap) {
-    if (is_mod_tap && record->tap.count != 0) {
+typedef struct {
+    uint8_t mod_bit;
+    bool hold_source[SHARED_MODIFIER_HOLD_SOURCES];
+    uint8_t basic_press_count;
+} shared_modifier_t;
+
+static shared_modifier_t left_shift = {.mod_bit = MOD_BIT(KC_LEFT_SHIFT)};
+static shared_modifier_t right_shift = {.mod_bit = MOD_BIT(KC_RIGHT_SHIFT)};
+static shared_modifier_t left_ctrl = {.mod_bit = MOD_BIT(KC_LEFT_CTRL)};
+static shared_modifier_t right_ctrl = {.mod_bit = MOD_BIT(KC_RIGHT_CTRL)};
+
+// Pass SHARED_MODIFIER_NO_SOURCE as `except` to test every source.
+static bool other_sources_held(const shared_modifier_t *group, uint8_t except) {
+    if (group->basic_press_count > 0) {
         return true;
     }
-    *this_held = record->event.pressed;
-    return record->event.pressed || !other_held;
+    for (uint8_t source = 0; source < SHARED_MODIFIER_HOLD_SOURCES; ++source) {
+        if (source != except && group->hold_source[source]) {
+            return true;
+        }
+    }
+    return false;
 }
 
-static bool process_basic_modifier(uint8_t *held_count, bool other_held, keyrecord_t *record) {
+// USB suspend and a host driver change clear QMK's modifier bits without
+// sending any release. A group that kept believing its key was down would then
+// withhold the next real release and stick the modifier on.
+static void forget_stale_sources(shared_modifier_t *group) {
+    if (get_mods() & group->mod_bit) {
+        return;
+    }
+    memset(group->hold_source, 0, sizeof(group->hold_source));
+    group->basic_press_count = 0;
+}
+
+static bool process_hold_source(shared_modifier_t *group, uint8_t source, keyrecord_t *record) {
+    forget_stale_sources(group);
+    if (record->tap.count != 0) {
+        return true; // Resolved as a tap, so it registers no modifier.
+    }
+    group->hold_source[source] = record->event.pressed;
+    return record->event.pressed || !other_sources_held(group, source);
+}
+
+static bool process_basic_source(shared_modifier_t *group, keyrecord_t *record) {
+    forget_stale_sources(group);
     if (record->event.pressed) {
-        ++*held_count;
+        ++group->basic_press_count;
         return true;
     }
-    if (*held_count > 0) {
-        --*held_count;
+    if (group->basic_press_count > 0) {
+        --group->basic_press_count;
     }
-    return *held_count == 0 && !other_held;
+    return group->basic_press_count == 0 && !other_sources_held(group, SHARED_MODIFIER_NO_SOURCE);
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
@@ -95,26 +131,17 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     keylog_note_keypress(keycode, record);
 #endif
     switch (keycode) {
-        case SFT_F:
-            return process_shared_modifier(&left_home_shift_held, left_basic_shift_count > 0, record, true);
-        case SFT_J:
-            return process_shared_modifier(&right_home_shift_held, right_basic_shift_count > 0, record, true);
-        case KC_LSFT:
-            return process_basic_modifier(&left_basic_shift_count, left_home_shift_held, record);
-        case KC_RSFT:
-            return process_basic_modifier(&right_basic_shift_count, right_home_shift_held, record);
-        case CTL_D:
-            return process_shared_modifier(&left_home_ctrl_held, left_outer_ctrl_held || left_basic_ctrl_count > 0, record, true);
-        case CTL_ESC:
-            return process_shared_modifier(&left_outer_ctrl_held, left_home_ctrl_held || left_basic_ctrl_count > 0, record, true);
-        case CTL_K:
-            return process_shared_modifier(&right_home_ctrl_held, right_outer_ctrl_held || right_basic_ctrl_count > 0, record, true);
-        case CTL_QUO:
-            return process_shared_modifier(&right_outer_ctrl_held, right_home_ctrl_held || right_basic_ctrl_count > 0, record, true);
-        case KC_LCTL:
-            return process_basic_modifier(&left_basic_ctrl_count, left_home_ctrl_held || left_outer_ctrl_held, record);
-        case KC_RCTL:
-            return process_basic_modifier(&right_basic_ctrl_count, right_home_ctrl_held || right_outer_ctrl_held, record);
+        case F_SHIFT: return process_hold_source(&left_shift, 0, record);
+        case KC_LSFT: return process_basic_source(&left_shift, record);
+        case J_SHIFT: return process_hold_source(&right_shift, 0, record);
+        case KC_RSFT: return process_basic_source(&right_shift, record);
+        case D_CTRL: return process_hold_source(&left_ctrl, 0, record);
+        case ESC_CTRL: return process_hold_source(&left_ctrl, 1, record);
+        case KC_LCTL: return process_basic_source(&left_ctrl, record);
+        case K_CTRL: return process_hold_source(&right_ctrl, 0, record);
+        case QUOT_CTRL: return process_hold_source(&right_ctrl, 1, record);
+        case KC_RCTL: return process_basic_source(&right_ctrl, record);
+        default: break;
     }
     return true;
 }

@@ -2,16 +2,16 @@
 
 QMK firmware for a wired **SplitKB Halcyon Elora rev2 (Choc)** with a TFT display on the left and a **Halcyon Encoder Rev. 2** on the right. The two RP2040 controllers need different UF2 images.
 
-## Flash the left half now
+## Flash the left half
 
-The left firmware is already built at [firmware/elora_left_tft.uf2](firmware/elora_left_tft.uf2). You do not need QMK or a compiler to install it.
+The firmware images are build outputs and are not committed to this repository. Build them once with [the steps below](#install-the-build-tools-on-macos); `./scripts/build.sh` writes `firmware/elora_left_tft.uf2` and `firmware/elora_right_encoder_rev2.uf2`.
 
 1. Connect the **left half** to your Mac with USB-C.
 2. Double-tap the small reset button on its wired Halcyon controller. A drive named `RPI-RP2` should appear. If it does not, hold the controller's boot button while reconnecting USB; see [SplitKB's bootloader instructions](https://docs.splitkb.com/product-guides/halcyon-series/using/using-wired).
-3. From this repository, run `./scripts/flash-left.sh`. The script checks the UF2 checksum and copies it to the mounted controller. Alternatively, drag [firmware/elora_left_tft.uf2](firmware/elora_left_tft.uf2) onto `RPI-RP2` in Finder.
+3. From this repository, run `./scripts/flash-left.sh`. The script copies the built image to the mounted controller. Alternatively, drag `firmware/elora_left_tft.uf2` onto `RPI-RP2` in Finder.
 4. The drive should disappear as the controller restarts. With only the left half connected, the TFT may show `SPLIT` until the right half is connected; the idle smiley still animates after three seconds.
 
-The script will stop without writing if `RPI-RP2` is not mounted. Ensure that the mounted controller is the **left** one; the right half needs its own firmware.
+The script will stop without writing if the image has not been built or if `RPI-RP2` is not mounted. Ensure that the mounted controller is the **left** one; the right half needs its own firmware.
 
 ## Hardware
 
@@ -102,20 +102,24 @@ The build uses [SplitKB's `halcyon-qmk` userspace](https://github.com/splitkb/qm
    ./scripts/build.sh
    ```
 
-   The script clones SplitKB's userspace into `.build/` on first use, copies this keymap there, verifies the TFT framebuffer before applying the portrait orientation, and builds both module variants before refreshing either firmware image. The expected output is:
+   The script clones SplitKB's userspace into `.build/` on first use, copies this keymap there, verifies the TFT framebuffer before applying the portrait orientation, and builds both module variants before refreshing either firmware image. It writes the two images the flash scripts use:
 
    ```text
-   .build/firmware/elora_left_tft.uf2
-   .build/firmware/elora_right_encoder_rev2.uf2
+   firmware/elora_left_tft.uf2
+   firmware/elora_right_encoder_rev2.uf2
    ```
+
+   Both are ignored by git.
 
    Set `SPLITKB_USERSPACE=/path/to/your/halcyon-qmk/checkout` to use an existing checkout. The script changes that checkout's Elora keymap, `qmk.json`, TFT configuration, and shared backlight timeout, so use a disposable checkout. The build also sets QMK's `user.overlay_dir` to that checkout.
 
-The build source is in `src/`: [keymap.c](src/keymap.c), [tap_hold.c](src/tap_hold.c), [config.h](src/config.h), [rules.mk](src/rules.mk), [keylog.c](src/keylog.c), and [display.c](src/display.c). To regenerate the committed smiley data and preview GIF after editing the PNG, install Pillow and run `python3 scripts/generate_smiley.py`.
+The build source is in `src/`: [keymap.c](src/keymap.c), [tap_hold.c](src/tap_hold.c), [config.h](src/config.h), [tap_hold_config.h](src/tap_hold_config.h), [rules.mk](src/rules.mk), [keylog.c](src/keylog.c), and [display.c](src/display.c). To regenerate the committed smiley data and preview GIF after editing the PNG, install Pillow and run `python3 scripts/generate_smiley.py`.
 
-Run `python3 scripts/simulate_keymap.py` to check representative layer chords, same-hand rolls, timeout behavior, and transparent key fallthrough against the checked-in keymap. It models QMK tap/hold rules; the actual keyboard still needs physical testing.
+Run `python3 scripts/simulate_keymap.py` to check the keymap's structure: the 62-position `LAYOUT(...)` argument count, the layer set, which hand each layer's keys sit on, and transparent key fallthrough. Its chord outcomes are a model derived from which options `tap_hold_config.h` and `tap_hold.c` enable, so they report what those files ask QMK for rather than what QMK does; the tests below are the behavioral coverage.
 
 To run the native QMK tap/hold and key-label tests against the firmware's `tap_hold.c`, set `QMK_HOME` to your QMK checkout and run `./scripts/run_qmk_tap_tests.sh`. The checkout needs QMK's `lib/googletest` submodule (`git submodule update --init lib/googletest`). These tests cover real QMK press/release behavior for every home-row modifier with letter, number, punctuation, arrow, thumb layer-tap, and other modifier-tap keys, plus rolls, tapping-term boundaries, held layers, stacked modifiers, and overlapping Shift or Ctrl sources. The key-label test uses a simulated split transport to check USB roles, label delivery, throttled retries, and recovery after a display restart.
+
+Run `./scripts/lint.sh` to check `src/` with clang-format and clang-tidy, or `./scripts/lint.sh --fix` to apply the formatting. Both need LLVM on `PATH` (`brew install llvm`), and clang-tidy reuses the compilation database described below. `.clang-format` and `.clang-tidy` hold the configuration; the hand-aligned keymap grid and the generated `smiley.c` are fenced off with `// clang-format off`.
 
 For clangd, generate the ignored local compilation database after a left firmware build:
 
@@ -125,21 +129,21 @@ python3 scripts/generate_compile_commands.py --qmk-home ~/src/qmk_firmware
 
 Use your actual QMK checkout path (`.build/qmk_firmware` is the default). The generator uses the ARM compiler on `PATH` to discover system headers; pass `--arm-gcc /path/to/arm-none-eabi-gcc` if needed. It sets the ARM target and Cortex-M0+ CPU for all project C files.
 
-The supplied UF2 images were compiled with SplitKB userspace commit `0e44cb2c1c26db8a63d0331ebad85bd8df75bd18`, QMK firmware commit `7a1bbf37c5c07da4ea0a162bb139083a46ef40a1`, and `arm-none-eabi-gcc` 8.5.0. The build script uses the current `halcyon-qmk` branch unless `SPLITKB_USERSPACE` points to a specific checkout. Each successful build refreshes both firmware images and checksums in `firmware/`.
+The last images verified on hardware were compiled with SplitKB userspace commit `0e44cb2c1c26db8a63d0331ebad85bd8df75bd18`, QMK firmware commit `7a1bbf37c5c07da4ea0a162bb139083a46ef40a1`, and `arm-none-eabi-gcc` 8.5.0. The build script uses the current `halcyon-qmk` branch unless `SPLITKB_USERSPACE` points to a specific checkout, so pin that variable to reproduce a known-good build. Each successful build refreshes both images in `firmware/`.
 
 ## Flash the right half
 
-The right firmware is ready at [firmware/elora_right_encoder_rev2.uf2](firmware/elora_right_encoder_rev2.uf2). This is a different image from the left TFT firmware.
+`./scripts/build.sh` also writes `firmware/elora_right_encoder_rev2.uf2`. This is a different image from the left TFT firmware.
 
 1. Connect the **right half** by USB-C. Double-tap its controller reset button to mount `RPI-RP2`.
-2. Run `./scripts/flash-right.sh`, or drag [firmware/elora_right_encoder_rev2.uf2](firmware/elora_right_encoder_rev2.uf2) onto `RPI-RP2` in Finder.
+2. Run `./scripts/flash-right.sh`, or drag `firmware/elora_right_encoder_rev2.uf2` onto `RPI-RP2` in Finder.
 3. Wait for the drive to disappear, then reconnect both halves. Test the keys and encoder: clockwise sends Tab; counterclockwise sends Shift+Tab. The encoder's push switch is supported by the module, but this layout leaves it unassigned.
 
-The flash script checks the UF2 checksum and stops if the bootloader drive is absent. Confirm that the mounted controller is the **right** one before copying. See [SplitKB's wired firmware guide](https://docs.splitkb.com/product-guides/halcyon-series/build-guide/wired/firmware) and [encoder installation guide](https://docs.splitkb.com/product-guides/halcyon-series/build-guide/wired/modules/encoder). If the press does not move, raise the knob a couple of millimetres above the module as SplitKB instructs.
+The flash script stops if the image has not been built or if the bootloader drive is absent. Confirm that the mounted controller is the **right** one before copying. See [SplitKB's wired firmware guide](https://docs.splitkb.com/product-guides/halcyon-series/build-guide/wired/firmware) and [encoder installation guide](https://docs.splitkb.com/product-guides/halcyon-series/build-guide/wired/modules/encoder). If the press does not move, raise the knob a couple of millimetres above the module as SplitKB instructs.
 
 ## Current tuning points
 
-- Home-row hold timing can be changed in [config.h](src/config.h).
+- Home-row hold timing can be changed in [tap_hold_config.h](src/tap_hold_config.h), which the native tests include so they cannot drift from the firmware.
 - Layer assignments and encoder direction can be changed in [keymap.c](src/keymap.c).
-- The idle delay, frame speed and layer notice can be changed in [display.c](src/display.c).
+- The idle delay, text layout and layer notice can be changed in [display.c](src/display.c). The animation's frame speed is `STEP_MS` in [generate_smiley.py](scripts/generate_smiley.py), which emits `SMILEY_STEP_MS` into the generated `smiley.h`.
 - The `halcyon-qmk` branch can change over time; if a future upstream update changes its module or `LAYOUT(...)` API, inspect the new definitions before updating this keymap.

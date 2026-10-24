@@ -1,0 +1,43 @@
+# Checks worth running on firmware.
+#
+# Disabled, with reasons:
+#   bugprone-easily-swappable-parameters  fires on every (group, record) pair
+#   bugprone-signed-bitwise               QMK's MT()/LT() keycode macros
+#   cert-dcl37-c, cert-dcl51-cpp          duplicate bugprone-reserved-identifier
+#   clang-analyzer-security.insecureAPI.* C11 Annex K (memset_s, snprintf_s) is
+#                                         absent from newlib; these calls are
+#                                         bounded by construction
+#   misc-include-cleaner                  wants QMK's umbrella headers split up
+#   misc-use-internal-linkage             QMK links these callbacks and tables
+#                                         by name, so static breaks the build
+#   portability-avoid-pragma-once         QMK uses #pragma once throughout
+#   readability-implicit-bool-conversion  noisy in C, where int and bool mix
+#   readability-magic-numbers             this is register and keycode code
+Checks: >
+  bugprone-*,
+  cert-*,
+  clang-analyzer-*,
+  misc-*,
+  performance-*,
+  portability-*,
+  readability-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-signed-bitwise,
+  -cert-dcl37-c,
+  -cert-dcl51-cpp,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+  -clang-analyzer-security.insecureAPI.strcpy,
+  -misc-include-cleaner,
+  -misc-use-internal-linkage,
+  -portability-avoid-pragma-once,
+  -readability-avoid-nested-conditional-operator,
+  -readability-function-cognitive-complexity,
+  -readability-identifier-length,
+  -readability-implicit-bool-conversion,
+  -readability-isolate-declaration,
+  -readability-magic-numbers
+
+# Report on this project's own headers only, never QMK, ChibiOS or the Pico SDK.
+HeaderFilterRegex: '/src/[^/]+\.h$'
+WarningsAsErrors: ''
+FormatStyle: file

@@ -3,12 +3,14 @@ set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
 vendor="${SPLITKB_USERSPACE:-$root/.build/splitkb-qmk-userspace}"
-mkdir -p "$(dirname "$vendor")" "$root/.build/firmware"
+mkdir -p "$(dirname "$vendor")"
 if [[ ! -d "$vendor/.git" ]]; then
   git clone --depth 1 --branch halcyon-qmk https://github.com/splitkb/qmk_userspace.git "$vendor"
 fi
 
+# Replace outright, or a source dropped from src/ stays behind and compiles.
 keymap_dest="$vendor/keyboards/splitkb/halcyon/elora/keymaps/elora"
+rm -rf "$keymap_dest"
 mkdir -p "$keymap_dest"
 cp "$root"/src/* "$keymap_dest/"
 cp "$root/qmk.json" "$vendor/qmk.json"
@@ -20,12 +22,7 @@ cd "$vendor"
 qmk compile -kb splitkb/halcyon/elora/rev2 -km elora -e HLC_TFT_DISPLAY=1 -e TARGET=elora_left_tft
 qmk compile -kb splitkb/halcyon/elora/rev2 -km elora -e HLC_ENCODER_REV2=1 -e TARGET=elora_right_encoder_rev2
 
-stage_dir="$(mktemp -d "$root/.build/firmware-stage.XXXXXX")"
-trap 'rm -rf -- "$stage_dir"' EXIT
-cp "$vendor/elora_left_tft.uf2" "$vendor/elora_right_encoder_rev2.uf2" "$stage_dir/"
+# Publish only after both compiles, so a failure cannot half-update firmware/.
 mkdir -p "$root/firmware"
-cp "$stage_dir/elora_left_tft.uf2" "$stage_dir/elora_right_encoder_rev2.uf2" "$root/firmware/"
-(cd "$root" && shasum -a 256 firmware/elora_left_tft.uf2 > firmware/elora_left_tft.sha256)
-(cd "$root" && shasum -a 256 firmware/elora_right_encoder_rev2.uf2 > firmware/elora_right_encoder_rev2.sha256)
-cp "$stage_dir/elora_left_tft.uf2" "$stage_dir/elora_right_encoder_rev2.uf2" "$root/.build/firmware/"
-echo "Firmware in $root/.build/firmware"
+cp "$vendor/elora_left_tft.uf2" "$vendor/elora_right_encoder_rev2.uf2" "$root/firmware/"
+echo "Firmware in $root/firmware"

@@ -1,0 +1,32 @@
+BasedOnStyle: Google
+AlignAfterOpenBracket: Align
+# Keeps tap_hold.h's keycode macro table readable as a table.
+AlignConsecutiveMacros: true
+# QMK aligns these; here it pads unrelated declarations into columns that go
+# stale on the next rename, so author spacing stands instead.
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignOperands: true
+AllowAllParametersOfDeclarationOnNextLine: false
+# keylog.c's keycode table and tap_hold.c's dispatch read best one per line.
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortEnumsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakAfterReturnType: None
+AlwaysBreakBeforeMultilineStrings: false
+BinPackArguments: true
+BinPackParameters: true
+# QMK keymaps are hand-aligned grids, so wrapping is left to the author.
+ColumnLimit: 0
+IndentCaseLabels: true
+IndentPPDirectives: AfterHash
+IndentWidth: 4
+MaxEmptyLinesToKeep: 1
+PointerAlignment: Right
+SortIncludes: false
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+SpacesBeforeTrailingComments: 1
+TabWidth: 4
+UseTab: Never

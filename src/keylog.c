@@ -9,9 +9,9 @@
 static keylog_state_t state = {.labels = {"-", "-"}};
 
 enum {
-    // Minimum interval in milliseconds between split sync attempts, including retries.
+    // Throttles failed attempts too, so a dead transport cannot flood the loop.
     SYNC_INTERVAL_MS = 50,
-    // Refresh interval in milliseconds to restore labels after the display restarts.
+    // Re-sends unchanged labels, so a display that restarts gets them back.
     SYNC_REFRESH_MS = 1000,
 };
 
@@ -28,7 +28,6 @@ void keylog_note_keypress(uint16_t keycode, keyrecord_t *record) {
     char *label = state.labels[record->event.key.row >= MATRIX_ROWS / 2];
     if (IS_QK_MOD_TAP(keycode) || IS_QK_LAYER_TAP(keycode)) {
         if (record->tap.count == 0) {
-            // A held layer or modifier key has no typed character.
             strcpy(label, IS_QK_LAYER_TAP(keycode) ? "LAYER" : "MOD");
             return;
         }
@@ -94,10 +93,14 @@ void keylog_note_keypress(uint16_t keycode, keyrecord_t *record) {
             case KC_DOWN: name = "DOWN"; break;
             case KC_LEFT: name = "LEFT"; break;
             case KC_RGHT: name = "RIGHT"; break;
-            case KC_LSFT: case KC_RSFT: name = "SHIFT"; break;
-            case KC_LCTL: case KC_RCTL: name = "CTRL"; break;
-            case KC_LALT: case KC_RALT: name = "ALT"; break;
-            case KC_LGUI: case KC_RGUI: name = "GUI"; break;
+            case KC_LSFT:
+            case KC_RSFT: name = "SHIFT"; break;
+            case KC_LCTL:
+            case KC_RCTL: name = "CTRL"; break;
+            case KC_LALT:
+            case KC_RALT: name = "ALT"; break;
+            case KC_LGUI:
+            case KC_RGUI: name = "GUI"; break;
             case KC_MPRV: name = "PREV"; break;
             case KC_MNXT: name = "NEXT"; break;
             case KC_MPLY: name = "PLAY"; break;
@@ -111,6 +114,7 @@ void keylog_note_keypress(uint16_t keycode, keyrecord_t *record) {
             case MS_BTN1: name = "MB1"; break;
             case MS_BTN2: name = "MB2"; break;
             case MS_BTN3: name = "MB3"; break;
+            default: break;
         }
         strcpy(label, name);
     }
@@ -129,8 +133,8 @@ void keyboard_post_init_user(void) {
 }
 
 void housekeeping_task_user(void) {
-    // The left TFT can read local state when it is the USB master. When the
-    // right half is master, send both labels to the display on the left.
+    // Only a right-half master has to send: the TFT is on the left, which
+    // reads this state directly whenever it is the master itself.
     if (!is_keyboard_master() || is_keyboard_left() || !is_transport_connected()) {
         return;
     }
@@ -141,7 +145,6 @@ void housekeeping_task_user(void) {
     if (timer_elapsed32(last_attempt_ms) < SYNC_INTERVAL_MS) {
         return;
     }
-    // Refresh unchanged labels periodically so a restarted slave recovers.
     if (memcmp(&state, &last_sent, sizeof(state)) == 0 && timer_elapsed32(last_success_ms) < SYNC_REFRESH_MS) {
         return;
     }

@@ -20,7 +20,7 @@ class EloraTapHold : public TestFixture {};
 TEST_F(EloraTapHold, same_hand_shift_digit_nested_tap) {
     TestDriver driver;
     InSequence order;
-    auto shift_f = KeymapKey(BASE, 2, 1, SFT_F);
+    auto shift_f = KeymapKey(BASE, 2, 1, F_SHIFT);
     auto five = KeymapKey(BASE, 3, 0, KC_5);
     set_keymap({shift_f, five});
 
@@ -41,7 +41,7 @@ TEST_F(EloraTapHold, same_hand_shift_digit_nested_tap) {
 TEST_F(EloraTapHold, same_hand_letter_roll_stays_taps) {
     TestDriver driver;
     InSequence order;
-    auto shift_f = KeymapKey(BASE, 2, 1, SFT_F);
+    auto shift_f = KeymapKey(BASE, 2, 1, F_SHIFT);
     auto v = KeymapKey(BASE, 3, 2, KC_V);
     set_keymap({shift_f, v});
 
@@ -66,7 +66,7 @@ TEST_F(EloraTapHold, same_hand_letter_roll_stays_taps) {
 TEST_F(EloraTapHold, same_hand_shift_digit_roll_stays_taps) {
     TestDriver driver;
     InSequence order;
-    auto shift_f = KeymapKey(BASE, 2, 1, SFT_F);
+    auto shift_f = KeymapKey(BASE, 2, 1, F_SHIFT);
     auto five = KeymapKey(BASE, 3, 0, KC_5);
     set_keymap({shift_f, five});
 
@@ -92,7 +92,7 @@ TEST_F(EloraTapHold, opposite_hand_nav_chord_activates_immediately) {
     TestDriver driver;
     InSequence order;
     auto nav_thumb = KeymapKey(BASE, 2, 3, SPC_NAV);
-    auto j_base = KeymapKey(BASE, 6, 1, SFT_J);
+    auto j_base = KeymapKey(BASE, 6, 1, J_SHIFT);
     auto j_nav = KeymapKey(NAV, 6, 1, KC_DOWN);
     set_keymap({nav_thumb, j_base, j_nav});
 
@@ -154,7 +154,7 @@ TEST_F(EloraTapHold, overlapping_nav_and_num_resolves_highest_layer) {
     TestDriver driver;
     InSequence order;
     auto nav_thumb = KeymapKey(BASE, 2, 3, SPC_NAV);
-    auto num_thumb = KeymapKey(BASE, 7, 3, BSP_NUM);
+    auto num_thumb = KeymapKey(BASE, 7, 3, BSPC_NUM);
     auto w_base = KeymapKey(BASE, 1, 0, KC_W);
     auto num_thumb_nav = KeymapKey(NAV, 7, 3, KC_TRNS);
     auto w_nav = KeymapKey(NAV, 1, 0, KC_TRNS);
@@ -182,8 +182,8 @@ TEST_F(EloraTapHold, overlapping_nav_and_num_resolves_highest_layer) {
 TEST_F(EloraTapHold, same_hand_shift_ctrl_digit_nested_tap) {
     TestDriver driver;
     InSequence order;
-    auto shift_f = KeymapKey(BASE, 2, 1, SFT_F);
-    auto ctrl_d = KeymapKey(BASE, 1, 1, CTL_D);
+    auto shift_f = KeymapKey(BASE, 2, 1, F_SHIFT);
+    auto ctrl_d = KeymapKey(BASE, 1, 1, D_CTRL);
     auto five = KeymapKey(BASE, 3, 0, KC_5);
     set_keymap({shift_f, ctrl_d, five});
 
@@ -211,8 +211,8 @@ TEST_F(EloraTapHold, same_hand_shift_ctrl_digit_nested_tap) {
 TEST_F(EloraTapHold, held_j_shifts_repeated_semicolons) {
     TestDriver driver;
     InSequence order;
-    auto shift_j = KeymapKey(BASE, 6, 1, SFT_J);
-    auto semicolon = KeymapKey(BASE, 9, 1, GUI_SCL);
+    auto shift_j = KeymapKey(BASE, 6, 1, J_SHIFT);
+    auto semicolon = KeymapKey(BASE, 9, 1, SCLN_GUI);
     set_keymap({shift_j, semicolon});
 
     EXPECT_NO_REPORT(driver);
@@ -236,8 +236,8 @@ TEST_F(EloraTapHold, held_j_shifts_repeated_semicolons) {
 TEST_F(EloraTapHold, rolling_j_semicolon_stays_two_taps) {
     TestDriver driver;
     InSequence order;
-    auto shift_j = KeymapKey(BASE, 6, 1, SFT_J);
-    auto semicolon = KeymapKey(BASE, 9, 1, GUI_SCL);
+    auto shift_j = KeymapKey(BASE, 6, 1, J_SHIFT);
+    auto semicolon = KeymapKey(BASE, 9, 1, SCLN_GUI);
     set_keymap({shift_j, semicolon});
 
     EXPECT_NO_REPORT(driver);
@@ -266,16 +266,16 @@ struct HomeModSpec {
 };
 
 static const HomeModSpec home_mods[] = {
-    {CTL_ESC, KC_ESC, KC_LEFT_CTRL, 0},
-    {GUI_A, KC_A, KC_LEFT_GUI, 1},
-    {ALT_S, KC_S, KC_LEFT_ALT, 2},
-    {CTL_D, KC_D, KC_LEFT_CTRL, 3},
-    {SFT_F, KC_F, KC_LEFT_SHIFT, 4},
-    {SFT_J, KC_J, KC_RIGHT_SHIFT, 5},
-    {CTL_K, KC_K, KC_RIGHT_CTRL, 6},
-    {ALT_L, KC_L, KC_RIGHT_ALT, 7},
-    {GUI_SCL, KC_SCLN, KC_RIGHT_GUI, 8},
-    {CTL_QUO, KC_QUOT, KC_RIGHT_CTRL, 9},
+    {ESC_CTRL, KC_ESC, KC_LEFT_CTRL, 0},
+    {A_GUI, KC_A, KC_LEFT_GUI, 1},
+    {S_ALT, KC_S, KC_LEFT_ALT, 2},
+    {D_CTRL, KC_D, KC_LEFT_CTRL, 3},
+    {F_SHIFT, KC_F, KC_LEFT_SHIFT, 4},
+    {J_SHIFT, KC_J, KC_RIGHT_SHIFT, 5},
+    {K_CTRL, KC_K, KC_RIGHT_CTRL, 6},
+    {L_ALT, KC_L, KC_RIGHT_ALT, 7},
+    {SCLN_GUI, KC_SCLN, KC_RIGHT_GUI, 8},
+    {QUOT_CTRL, KC_QUOT, KC_RIGHT_CTRL, 9},
 };
 
 static const uint8_t plain_keys[] = {
@@ -419,8 +419,8 @@ TEST_F(EloraTapHold, every_modifier_chords_with_each_layer_thumb_tap) {
         uint8_t column;
     };
     const ThumbSpec thumbs[] = {
-        {ESC_MED, KC_ESC, 1}, {SPC_NAV, KC_SPC, 2}, {TAB_MOU, KC_TAB, 3},
-        {ENT_SYM, KC_ENT, 6}, {BSP_NUM, KC_BSPC, 7}, {DEL_FUN, KC_DEL, 8},
+        {ESC_MEDIA, KC_ESC, 1}, {SPC_NAV, KC_SPC, 2}, {TAB_MOUSE, KC_TAB, 3},
+        {ENT_SYM, KC_ENT, 6}, {BSPC_NUM, KC_BSPC, 7}, {DEL_FUN, KC_DEL, 8},
     };
     for (const auto& mod : home_mods) {
         for (const auto& thumb : thumbs) {
@@ -754,5 +754,49 @@ TEST_F(EloraTapHold, two_plain_shift_keys_survive_either_release_order) {
             EXPECT_TRUE(sent_shifted_letter);
             EXPECT_TRUE(reports.back().mods == 0);
         }
+    }
+}
+
+// USB suspend clears QMK's modifier bits without sending any release, which
+// used to leave tap_hold.c withholding the dedicated key's release forever.
+TEST_F(EloraTapHold, cleared_mods_do_not_stick_a_dedicated_modifier) {
+    TestDriver driver;
+    std::vector<report_keyboard_t> reports;
+    EXPECT_CALL(driver, send_keyboard_mock(_))
+        .Times(testing::AnyNumber())
+        .WillRepeatedly([&reports](report_keyboard_t& report) { reports.push_back(report); });
+
+    for (const auto& mod : {home_mods[0], home_mods[3], home_mods[4],
+                            home_mods[5], home_mods[6], home_mods[9]}) {
+        SCOPED_TRACE(get_keycode_string(mod.keycode));
+        auto home = KeymapKey(BASE, mod.column, 1, mod.keycode);
+        auto plain = KeymapKey(BASE, mod.column < 5 ? 0 : 9, 2, mod.modifier);
+        auto letter = KeymapKey(BASE, 4, 0, KC_V);
+        set_keymap({home, plain, letter});
+        reports.clear();
+
+        // Drop the bits the way a suspend does: key still down, no release.
+        home.press();
+        idle_for(TAPPING_TERM + 1);
+        clear_keyboard();
+        run_one_scan_loop();
+
+        plain.press();
+        run_one_scan_loop();
+        tap_key(letter);
+        plain.release();
+        run_one_scan_loop();
+
+        const bool sent_modified_letter = std::any_of(reports.begin(), reports.end(), [&mod](const report_keyboard_t& report) {
+            if ((report.mods & MOD_BIT(mod.modifier)) == 0) {
+                return false;
+            }
+            return std::find(std::begin(report.keys), std::end(report.keys), KC_V) != std::end(report.keys);
+        });
+        EXPECT_TRUE(sent_modified_letter);
+        EXPECT_EQ(reports.back().mods, 0);
+
+        home.release();
+        idle_for(TAPPING_TERM + 1);
     }
 }

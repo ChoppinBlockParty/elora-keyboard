@@ -4,6 +4,7 @@
 #include "hlc_tft_display/hlc_tft_display.h"
 
 #define SMILEY_STEP_MS 212
+#define SMILEY_SIZE_PX 80
 
 uint8_t smiley_step_count(void);
 void draw_smiley_step(painter_device_t surface, uint8_t step, int16_t x, int16_t y);

@@ -44,7 +44,7 @@ TEST_F(EloraKeylog, labels_sync_with_right_usb_master_and_recover_after_failure)
     EXPECT_STREQ(keylog_get_state()->labels[0], "Q");
     record.event.key.row = MATRIX_ROWS / 2;
     record.tap.count = 1;
-    keylog_note_keypress(SFT_J, &record);
+    keylog_note_keypress(J_SHIFT, &record);
     EXPECT_STREQ(keylog_get_state()->labels[1], "J");
     record.event.pressed = false;
     keylog_note_keypress(KC_Z, &record);
