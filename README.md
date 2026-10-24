@@ -24,7 +24,7 @@ The script will stop without writing if `RPI-RP2` is not mounted. Ensure that th
 - Right: silver Halcyon Rotary Encoder Rev. 2
 - Cirque touchpad was purchased but is not installed
 
-The supplied [project specification](docs/agreed-spec.md) is the source for this setup. The approved [sprite sheet](assets/tft_idle_smiley_sprite_sheet.png) is included separately for regenerating the display data.
+The [project specification](docs/agreed-spec.md) records the original hardware and layout decisions. Later changes, including the portrait TFT orientation and tap-and-hold behavior, are documented here and implemented in the checked-in source. The approved [sprite sheet](assets/tft_idle_smiley_sprite_sheet.png) is included for regenerating the display data.
 
 ## Physical key layout
 
@@ -44,19 +44,30 @@ Shift  Z X C V B  Blank ↑          → Blank N M , . / Shift
 - The far left and far right thumb positions are unassigned. The encoder press is also unassigned. Blank caps are used for those positions and the Ctrl and Delete dual keys. The five main dual-function thumb keys use convex caps.
 - On macOS, QMK GUI is Command, Alt is Option, and Ctrl is Control.
 
+This is a custom QWERTY layout inspired by [Miryoku](https://github.com/manna-harbour/miryoku), not an official Miryoku keymap. Its tap and hold behavior is implemented with [QMK's documented options](https://docs.qmk.fm/tap_hold) in `tap_hold.c`.
+
 ### Layers
 
 - **Base:** QWERTY and direct `1`–`0` number row.
-- **Nav:** arrows on H/J/K/L, Home/End and Page Up/Page Down on the right upper row; left home row has Command/Option/Control/Shift.
-- **Symbol:** common shifted punctuation on the upper alpha row and brackets/operators on the home row.
-- **Number:** right-hand numpad-style 7–9, 4–6, 1–3, and 0.
-- **Function:** F1–F12 on the alpha rows.
-- **Media:** previous, play/pause, next, mute, and volume.
+- **Nav:** arrows on the right H/J/K/L positions, Home/End and Page Up/Page Down on the right upper row; left home row has Command/Option/Control/Shift.
+- **Symbol:** punctuation on the left alpha rows and left number row, reached with the right Enter/Sym thumb.
+- **Number:** 7–9, 4–6, and 1–3 on the left W/E/R, S/D/F, and X/C/V positions; 0 on G and decimal point on B, reached with the right Backspace/Num thumb.
+- **Function:** F1–F12 on the left alpha rows, reached with the right Delete/Fun thumb.
+- **Media:** previous, volume down/up, and next on the right home row; play/pause and mute on the right bottom row, reached with the left Esc/Media thumb.
 - **Mouse:** pointer directions and three mouse buttons. This is a key-controlled mouse layer; the unused Cirque module is not enabled.
 
-Hold the corresponding thumb key to use each layer. The tapping term is 200 ms with chordal hold enabled. The right encoder turns **clockwise for Tab** and **counter-clockwise for Shift+Tab**. Its press can be assigned later in `right_halcyon_buttons` in [keymap.c](keyboards/splitkb/halcyon/elora/keymaps/elora/keymap.c).
+Hold the corresponding thumb key to use each layer. The tapping term is 200 ms. Opposite-hand layer chords activate immediately; a same-hand roll within 200 ms remains a thumb tap. Quick-tap repeat is disabled so tapping a thumb and immediately holding it still selects its layer. Every base home-row modifier, plus Ctrl/Esc and Ctrl/quote, uses QMK Permissive Hold for every second key on either hand. Press the modifier key, tap and release the second key, then release the modifier key to send a shortcut, even when the sequence is fast: J+semicolon produces `:`, and F+V produces `V`. For an ordinary `j;` or `fv` roll, release J or F before releasing the next key. If the modifier key has already been held for 200 ms, it acts as a modifier regardless of release order. The firmware also keeps Shift or Ctrl active when two keys supplying the same modifier overlap and one is released. These event sequences are inherently ambiguous until a key releases, so no firmware can infer a different intent from identical press and release events. The right encoder turns **clockwise for Tab** and **counter-clockwise for Shift+Tab**. Its press can be assigned later in `right_halcyon_buttons` in [keymap.c](src/keymap.c).
 
-The TFT is blank during ordinary typing. After about three seconds of no input, the yellow, pink and teal smiley jumps while its shadow stays on the ground. The laughing smile holds for four steps before landing. Activity clears the animation. A non-base layer name is shown while that layer is active. A lost split connection shows `SPLIT` in red after a short startup grace period, without hiding the idle animation. There is no Caps Lock display indicator. Host and module fault detection are future work.
+During typing, the TFT shows the most recently pressed key from each half as `L:` and `R:`, with USB connected to either half. Both halves must run the updated firmware for split key-label synchronization. Below them it lists active Ctrl, Shift, Alt and GUI modifiers; GUI is labelled `CMD/WIN` because it is the Command key on macOS and the Windows key on Windows. The key display stays visible while a modifier is active. After about three seconds of no input and with no active modifier, the yellow, pink and teal smiley jumps while its shadow stays on the ground. The laughing smile holds for four steps before landing. The display and backlight remain on during inactivity, so the animation continues beyond two minutes. Activity clears the animation and returns to the key display. A non-base layer name is shown while that layer is active. A lost split connection shows `SPLIT` in red after a short startup grace period, without hiding the idle animation. There is no Caps Lock display indicator. Host and module fault detection are future work.
+
+After flashing, check the timing on the keyboard itself:
+
+- Hold J, tap semicolon several times, then release J: expect only `:` characters.
+- Roll J into semicolon by releasing J first: expect `j;`.
+- Repeat with F and V: a nested tap gives `V`; a roll gives `fv`.
+- Hold F and tap the dedicated left Shift, then tap V while still holding F: expect `V`.
+- Connect USB to each half in turn and type on both halves: expect both `L:` and `R:` labels to update.
+- Leave the keyboard idle for more than two minutes: expect the TFT to stay lit and the smiley to keep jumping.
 
 ![Preview of the TFT idle smiley jumping and holding its smile, enlarged three times](assets/tft_idle_preview.gif)
 
@@ -91,16 +102,28 @@ The build uses [SplitKB's `halcyon-qmk` userspace](https://github.com/splitkb/qm
    ./scripts/build.sh
    ```
 
-   The script clones SplitKB's userspace into `.build/` on first use, copies this keymap there, applies the portrait TFT orientation, and builds each module variant. The expected output is:
+   The script clones SplitKB's userspace into `.build/` on first use, copies this keymap there, verifies the TFT framebuffer before applying the portrait orientation, and builds both module variants before refreshing either firmware image. The expected output is:
 
    ```text
    .build/firmware/elora_left_tft.uf2
    .build/firmware/elora_right_encoder_rev2.uf2
    ```
 
-   Set `SPLITKB_USERSPACE=/path/to/your/halcyon-qmk/checkout` to use an existing checkout. The script changes that checkout's Elora keymap, `qmk.json`, and TFT configuration, so use a disposable checkout. The build also sets QMK's `user.overlay_dir` to that checkout.
+   Set `SPLITKB_USERSPACE=/path/to/your/halcyon-qmk/checkout` to use an existing checkout. The script changes that checkout's Elora keymap, `qmk.json`, TFT configuration, and shared backlight timeout, so use a disposable checkout. The build also sets QMK's `user.overlay_dir` to that checkout.
 
-The build source is [keymap.c](keyboards/splitkb/halcyon/elora/keymaps/elora/keymap.c), [config.h](keyboards/splitkb/halcyon/elora/keymaps/elora/config.h), [rules.mk](keyboards/splitkb/halcyon/elora/keymaps/elora/rules.mk), and [display.c](keyboards/splitkb/halcyon/elora/keymaps/elora/display.c). To regenerate the committed smiley data and preview GIF after editing the PNG, install Pillow and run `python3 scripts/generate_smiley.py`.
+The build source is in `src/`: [keymap.c](src/keymap.c), [tap_hold.c](src/tap_hold.c), [config.h](src/config.h), [rules.mk](src/rules.mk), [keylog.c](src/keylog.c), and [display.c](src/display.c). To regenerate the committed smiley data and preview GIF after editing the PNG, install Pillow and run `python3 scripts/generate_smiley.py`.
+
+Run `python3 scripts/simulate_keymap.py` to check representative layer chords, same-hand rolls, timeout behavior, and transparent key fallthrough against the checked-in keymap. It models QMK tap/hold rules; the actual keyboard still needs physical testing.
+
+To run the native QMK tap/hold and key-label tests against the firmware's `tap_hold.c`, set `QMK_HOME` to your QMK checkout and run `./scripts/run_qmk_tap_tests.sh`. The checkout needs QMK's `lib/googletest` submodule (`git submodule update --init lib/googletest`). These tests cover real QMK press/release behavior for every home-row modifier with letter, number, punctuation, arrow, thumb layer-tap, and other modifier-tap keys, plus rolls, tapping-term boundaries, held layers, stacked modifiers, and overlapping Shift or Ctrl sources. The key-label test uses a simulated split transport to check USB roles, label delivery, throttled retries, and recovery after a display restart.
+
+For clangd, generate the ignored local compilation database after a left firmware build:
+
+```sh
+python3 scripts/generate_compile_commands.py --qmk-home ~/src/qmk_firmware
+```
+
+Use your actual QMK checkout path (`.build/qmk_firmware` is the default). The generator uses the ARM compiler on `PATH` to discover system headers; pass `--arm-gcc /path/to/arm-none-eabi-gcc` if needed. It sets the ARM target and Cortex-M0+ CPU for all project C files.
 
 The supplied UF2 images were compiled with SplitKB userspace commit `0e44cb2c1c26db8a63d0331ebad85bd8df75bd18`, QMK firmware commit `7a1bbf37c5c07da4ea0a162bb139083a46ef40a1`, and `arm-none-eabi-gcc` 8.5.0. The build script uses the current `halcyon-qmk` branch unless `SPLITKB_USERSPACE` points to a specific checkout. Each successful build refreshes both firmware images and checksums in `firmware/`.
 
@@ -116,7 +139,7 @@ The flash script checks the UF2 checksum and stops if the bootloader drive is ab
 
 ## Current tuning points
 
-- Home-row hold timing can be changed in [config.h](keyboards/splitkb/halcyon/elora/keymaps/elora/config.h).
-- Layer assignments and encoder direction can be changed in [keymap.c](keyboards/splitkb/halcyon/elora/keymaps/elora/keymap.c).
-- The idle delay, frame speed and layer notice can be changed in [display.c](keyboards/splitkb/halcyon/elora/keymaps/elora/display.c).
+- Home-row hold timing can be changed in [config.h](src/config.h).
+- Layer assignments and encoder direction can be changed in [keymap.c](src/keymap.c).
+- The idle delay, frame speed and layer notice can be changed in [display.c](src/display.c).
 - The `halcyon-qmk` branch can change over time; if a future upstream update changes its module or `LAYOUT(...)` API, inspect the new definitions before updating this keymap.

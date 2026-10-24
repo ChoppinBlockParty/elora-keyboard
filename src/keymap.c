@@ -1,24 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include QMK_KEYBOARD_H
-
-enum layers { BASE, NAV, SYM, NUM, FUN, MEDIA, MOUSE };
-
-#define GUI_A   LGUI_T(KC_A)
-#define ALT_S   LALT_T(KC_S)
-#define CTL_D   LCTL_T(KC_D)
-#define SFT_F   LSFT_T(KC_F)
-#define SFT_J   RSFT_T(KC_J)
-#define CTL_K   RCTL_T(KC_K)
-#define ALT_L   RALT_T(KC_L)
-#define GUI_SCL RGUI_T(KC_SCLN)
-#define CTL_ESC LCTL_T(KC_ESC)
-#define CTL_QUO RCTL_T(KC_QUOT)
-#define ESC_MED LT(MEDIA, KC_ESC)
-#define SPC_NAV LT(NAV, KC_SPC)
-#define TAB_MOU LT(MOUSE, KC_TAB)
-#define ENT_SYM LT(SYM, KC_ENT)
-#define BSP_NUM LT(NUM, KC_BSPC)
-#define DEL_FUN LT(FUN, KC_DEL)
+#include "tap_hold.h"
 
 #define ___ KC_TRNS
 #define XXX KC_NO
@@ -41,31 +23,31 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
                             ___, ___, ___, ___, ___,             ___, ___, ___, ___, ___
     ),
     [SYM] = LAYOUT(
-        ___, ___, ___, ___, ___, ___,                            ___, ___, ___, ___, ___, ___,
-        ___, KC_EXLM, KC_AT, KC_HASH, KC_DLR, KC_PERC,          KC_CIRC, KC_AMPR, KC_ASTR, KC_LPRN, KC_RPRN, ___,
-        ___, KC_GRV, KC_TILD, KC_BSLS, KC_PIPE, KC_LBRC,        KC_RBRC, KC_LCBR, KC_RCBR, KC_MINS, KC_EQL, ___,
-        ___, ___, ___, ___, ___, ___, ___, ___,                  ___, ___, ___, ___, ___, ___, ___, ___,
+        ___, KC_GRV, KC_TILD, KC_BSLS, KC_MINS, KC_EQL,          ___, ___, ___, ___, ___, ___,
+        ___, KC_EXLM, KC_AT, KC_HASH, KC_DLR, KC_PERC,          ___, ___, ___, ___, ___, ___,
+        ___, KC_CIRC, KC_AMPR, KC_ASTR, KC_LPRN, KC_RPRN,       ___, ___, ___, ___, ___, ___,
+        ___, KC_LBRC, KC_RBRC, KC_LCBR, KC_RCBR, KC_PIPE, ___, ___,  ___, ___, ___, ___, ___, ___, ___, ___,
                             ___, ___, ___, ___, ___,             ___, ___, ___, ___, ___
     ),
     [NUM] = LAYOUT(
         ___, ___, ___, ___, ___, ___,                            ___, ___, ___, ___, ___, ___,
-        ___, ___, ___, ___, ___, ___,                            KC_7, KC_8, KC_9, ___, ___, ___,
-        ___, ___, ___, ___, ___, ___,                            KC_4, KC_5, KC_6, KC_0, ___, ___,
-        ___, ___, ___, ___, ___, ___, ___, ___,                  ___, ___, KC_1, KC_2, KC_3, KC_DOT, ___, ___,
+        ___, ___, KC_7, KC_8, KC_9, ___,                         ___, ___, ___, ___, ___, ___,
+        ___, ___, KC_4, KC_5, KC_6, KC_0,                       ___, ___, ___, ___, ___, ___,
+        ___, ___, KC_1, KC_2, KC_3, KC_DOT, ___, ___,           ___, ___, ___, ___, ___, ___, ___, ___,
                             ___, ___, ___, ___, ___,             ___, ___, ___, ___, ___
     ),
     [FUN] = LAYOUT(
         ___, ___, ___, ___, ___, ___,                            ___, ___, ___, ___, ___, ___,
-        ___, KC_F1, KC_F2, KC_F3, KC_F4, KC_F5,                  KC_F6, KC_F7, KC_F8, KC_F9, KC_F10, ___,
-        ___, KC_F11, KC_F12, ___, ___, ___,                     ___, ___, ___, ___, ___, ___,
-        ___, ___, ___, ___, ___, ___, ___, ___,                  ___, ___, ___, ___, ___, ___, ___, ___,
+        ___, KC_F1, KC_F2, KC_F3, KC_F4, KC_F5,                  ___, ___, ___, ___, ___, ___,
+        ___, KC_F6, KC_F7, KC_F8, KC_F9, KC_F10,                 ___, ___, ___, ___, ___, ___,
+        ___, KC_F11, KC_F12, ___, ___, ___, ___, ___,            ___, ___, ___, ___, ___, ___, ___, ___,
                             ___, ___, ___, ___, ___,             ___, ___, ___, ___, ___
     ),
     [MEDIA] = LAYOUT(
         ___, ___, ___, ___, ___, ___,                            ___, ___, ___, ___, ___, ___,
         ___, ___, ___, ___, ___, ___,                            ___, ___, ___, ___, ___, ___,
-        ___, KC_MPRV, KC_MPLY, KC_MNXT, KC_MUTE, ___,           ___, KC_VOLD, KC_VOLU, ___, ___, ___,
-        ___, ___, ___, ___, ___, ___, ___, ___,                  ___, ___, ___, ___, ___, ___, ___, ___,
+        ___, ___, ___, ___, ___, ___,                            ___, KC_MPRV, KC_VOLD, KC_VOLU, KC_MNXT, ___,
+        ___, ___, ___, ___, ___, ___, ___, ___,                  ___, ___, KC_MPLY, KC_MUTE, ___, ___, ___, ___,
                             ___, ___, ___, ___, ___,             ___, ___, ___, ___, ___
     ),
     [MOUSE] = LAYOUT(

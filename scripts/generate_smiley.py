@@ -6,8 +6,8 @@ from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "assets/tft_idle_smiley_sprite_sheet.png"
-TARGET = ROOT / "keyboards/splitkb/halcyon/elora/keymaps/elora/smiley.c"
-HEADER = ROOT / "keyboards/splitkb/halcyon/elora/keymaps/elora/smiley.h"
+TARGET = ROOT / "src/smiley.c"
+HEADER = ROOT / "src/smiley.h"
 PREVIEW = ROOT / "assets/tft_idle_preview.gif"
 SIZE = 80
 DISPLAY_WIDTH, DISPLAY_HEIGHT = 135, 240

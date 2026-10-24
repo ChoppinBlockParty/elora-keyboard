@@ -2,7 +2,7 @@
 
 _Last consolidated: 2 October 2026_
 
-This is the current source of truth for the keyboard project.
+This records the original agreement as of 2 October 2026. Later requests changed the TFT to portrait, refined the idle animation, and tuned the tap-and-hold behavior. See the repository README and checked-in firmware source for the current implementation.
 
 ## Hardware
 
